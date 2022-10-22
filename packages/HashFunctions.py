@@ -40,7 +40,7 @@ class HashFunctions:
         hash2 = SHA512.new(self.password)
 
         # Compare the hashes
-        if hash == hash2:
+        if hash.hexdigest() == hash2.hexdigest():
             return True
         else:
             return False
