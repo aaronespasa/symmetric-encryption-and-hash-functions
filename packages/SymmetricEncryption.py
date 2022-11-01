@@ -1,6 +1,6 @@
 #########################################
 # Symmetric Encryption Class
-# 
+#
 # It allows us to:
 # - Generate a new secure password and encrypt it using AES
 # - Store the generated password in a password-protected file
@@ -13,10 +13,12 @@
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 
+
 class SymmetricEncryption:
     """
     Class to encrypt and decrypt a password using AES
     """
+
     @staticmethod
     def encrypt(password):
         """

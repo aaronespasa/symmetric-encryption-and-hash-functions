@@ -1,6 +1,6 @@
 #########################################
 # Hash Functions Class
-# 
+#
 # It allows us to:
 # - Generate a hash of a password
 # - Compare a password with a hash
@@ -13,10 +13,12 @@
 from Crypto.Hash import SHA512
 from time import time
 
+
 class HashFunctions:
     """
     Class to generate a hash of a password and compare it with another one
     """
+
     def __init__(self, password, salt=None):
         """
         Constructor
@@ -33,13 +35,13 @@ class HashFunctions:
 
         # Return the hash
         return hash
-    
+
     def generate_salt(self, salt):
         if salt == None:
             return str(int(time()))
         else:
             return salt
-    
+
     def get_salt(self):
         """
         Returns the salt
