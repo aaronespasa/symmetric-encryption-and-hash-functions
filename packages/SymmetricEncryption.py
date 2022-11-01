@@ -17,13 +17,8 @@ class SymmetricEncryption:
     """
     Class to encrypt and decrypt a password using AES
     """
-    def __init__(self, password):
-        """
-        Constructor
-        """
-        self.password = password
-
-    def encrypt(self):
+    @staticmethod
+    def encrypt(password):
         """
         Encrypts the password using AES
         """
@@ -35,12 +30,13 @@ class SymmetricEncryption:
 
         # Encrypt the password using AES
         cipher = AES.new(key, AES.MODE_CFB, iv)
-        ciphertext = cipher.encrypt(self.password)
+        ciphertext = cipher.encrypt(password)
 
         # Return the encrypted password
         return (key, iv, ciphertext)
 
-    def decrypt(self, key, iv, ciphertext):
+    @staticmethod
+    def decrypt(key, iv, ciphertext):
         """
         Decrypts the password using AES
         """

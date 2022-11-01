@@ -1,0 +1,30 @@
+[
+    {
+        "user": "Roberto",
+        "password": {
+            "key": "58b0ca8b600773310be5672436b5cd8f12b5dee687f39fc0bd397ce58ca3dc96",
+            "iv": "fdf227c21aef3de2b03d5ffe40085efe",
+            "ciphertext": "571ae1295df232eac9ba18c272244d72ba6dc369c2e2b2af2176bd2f273ba552a87789ed1f54c96b55abcda9ae8099537e39861b1a966c9797b08e184fa90c9466fc88f7f3c85fa00c3de162c4de7d49c916ce7c53cf31c3016183936583acb93cbb2da55908da66a3887c28e7da4a80f8ea40e8b9a50abb1a6546ff0bf249c8",
+            "salt": "1667306603"
+        },
+        "prescription": {
+            "key": "976d66c67505c3de19e0567c199beb03ac8f371e771d9f2a7735084ff7ba7803",
+            "iv": "c5e3578ec9f461fc00cede9e550c5377",
+            "ciphertext": "14f3dfa47078f25203d25cacba451ecd27455815b89790439331259be2446645588d67034de456b8ab3729745b84017763ebc7783a9e67f3d0523891ddec1544412103da9fa522cad31c6f2df66d8a128468"
+        }
+    },
+    {
+        "user": "Alejandro",
+        "password": {
+            "key": "36bc67630d482eaf6dd67da5f994a663fc427377db8e9935cdef1f05783ca0e0",
+            "iv": "9928adf02d19f5b14e32e8190abfce60",
+            "ciphertext": "c959e7e9a8bfb1dc9f115c7d26469020812f21c90334ddcb0e0cfa509b3b6f51589782d390fd08f26bb18eaf07d94ca9b7327ba64b504873d808fc8e66f36e5673a36095fa3b0cb3b932899cc92c46d536849ff5650f5feeae8367a600a3b7a49d2877dd9f0c11bafc1c2f9a2fc6dfe5f6d57616ccb90b2825dd60459c8e23cd",
+            "salt": "1667307907"
+        },
+        "prescription": {
+            "key": "c5adbf8cbce9761cca4645e60dbec9cc698230bf171a6bd26ae80231670c7835",
+            "iv": "31ce149f14e5d28bbb1b7268c1830a3d",
+            "ciphertext": "6988d2a75de5b16028359d44c352bfd3e176b34359f24d71e97a67e3b7f094f1b140d99054213eb575d93f3a47431ab229cb3e0ca9b46479c5f134812d27712a4ffe9ea7a4b2ef24cca613406a5ed1aaba18"
+        }
+    }
+]
