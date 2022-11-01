@@ -18,10 +18,10 @@ class AppAccess:
     def __init__(self, database_json_path) -> None:
         self.database_json = database_json_path
         self.prescriptions = [
-            "https://drive.google.com/file/d/12T_TB4Yue25F_67OKiHhXqlsXxSbr6wY/view?usp=sharing",
-            "https://drive.google.com/file/d/1XbkwZuTso_wMXr8wbxwRXQVoJZSz2S75/view?usp=sharing",
-            "https://drive.google.com/file/d/1_bBRIAHdVunX1i7vAWTLPJYXdl9OaV3o/view?usp=share_link",
-            "https://drive.google.com/file/d/1AvW7U5dMWPBIwI4R9696rxYT2P_LLvmA/view?usp=share_link"
+            "12T_TB4Yue25F_67OKiHhXqlsXxSbr6wY",
+            "1XbkwZuTso_wMXr8wbxwRXQVoJZSz2S75",
+            "1_bBRIAHdVunX1i7vAWTLPJYXdl9OaV3o",
+            "1AvW7U5dMWPBIwI4R9696rxYT2P_LLvmA"
         ]
         self.symmetricEncryption = SymmetricEncryption()
 
@@ -225,3 +225,7 @@ class AppAccess:
                     self.signup(user, password, password2)
             else:
                 self.run(False)
+
+
+
+
