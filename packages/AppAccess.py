@@ -18,6 +18,9 @@ from random import randint
 class AppAccess:
     def __init__(self, database_json_path) -> None:
         self.database_json = database_json_path
+        
+        # The following list of prescriptions will be assigned randomly to the users
+        # The prescription is encrypted using AES
         self.prescriptions = [
             "12T_TB4Yue25F_67OKiHhXqlsXxSbr6wY",
             "1XbkwZuTso_wMXr8wbxwRXQVoJZSz2S75",
@@ -31,6 +34,7 @@ class AppAccess:
         return f"https://drive.google.com/file/d/{prescriptionLink}/view?usp=sharing"
 
     def initialize_json(self):
+        """Initialize the JSON file (empty the database)"""
         data = []
         file = open(self.database_json, "w")
         json.dump(data, file, indent=4)
@@ -54,21 +58,36 @@ class AppAccess:
         return options[option]
 
     def generate_hash(self, password, salt=None):
+        """Generate a hash of the password
+        - If the salt is not provided, it is generated randomly
+        - If the salt is provided, it is used to generate the hash
+        """
         hashFunctions = HashFunctions(password, salt)
-        hash = hashFunctions.generate_hash()
-        hash_text = hash.hexdigest()
+        hash = hashFunctions.generate_hash() # Generate the hash
+        hash_text = hash.hexdigest() # Hash in hexadecimal format
         return hashFunctions.get_salt(), hash_text
 
     def create_user_json(self, user, key, iv, ciphertext, salt):
+        """Create a JSON with the user information
+        - This information is what is stored in the database.json file
+        """
+        # Generate a random prescription for the user
         assigned_prescription = self.prescriptions[
             randint(0, len(self.prescriptions) - 1)
         ]
+
+        # Encrypt the prescription using AES
         (
             prescription_key,
             prescription_iv,
             prescription_ciphertext,
         ) = self.symmetricEncryption.encrypt(assigned_prescription.encode())
 
+        # Create the JSON for the user which contains:
+        # - The user name
+        # - The key, the initialize vector and the encoded text of the password (encrypted using AES)
+        # - The salt of the password (used to generate the hash)
+        # - The key, the initialize vector and the encoded text of the prescription (encrypted using AES)
         user_information = {
             "user": user,
             "password": {
@@ -86,6 +105,7 @@ class AppAccess:
         return user_information
 
     def check_if_user_exists(self, user) -> bool:
+        """Check if the user already exists in the database"""
         file = open(self.database_json, "r")
         data = json.load(file)
         for p in data:
@@ -96,27 +116,32 @@ class AppAccess:
         return False
 
     def encrypt_password(self, user, password) -> None:
-        """
-        Asks for a password
-        """
+        """Encrypt the password and store it in the database.json file"""
+        # Generate a hash for the password and get the salt that was used to generate it
+        # The, encrypt the hash of the password using AES
         salt, hash_text = self.generate_hash(password)
         (key, iv, ciphertext) = self.symmetricEncryption.encrypt(hash_text.encode())
 
-        # Store the key, the iv and the ciphertext in a JSON file (database.json)
+        # Store the key, the initialize vector and the ciphertext in a JSON file (database.json)
         user_information = self.create_user_json(user, key, iv, ciphertext, salt)
 
         file = open(self.database_json, "r")
         data = json.load(file)
 
+        # Append the user information to the database.json file
         data.append(user_information)
         file = open(self.database_json, "w")
         json.dump(data, file, indent=4)
 
-    def decrypt_password(self, user, password2) -> str:
+    def decrypt_password(self, user, password) -> str:
+        """Checks if the user exists and if the password is correct
+        - If the user exists, it decrypts the password and checks if it
+          is the same as the one provided by the user
+        - If the user does not exist, that's notified to the user
+        - If the password is incorrect, that's notified to the user
         """
-        Asks for a password
-        """
-        # Read the key, the iv and the ciphertext from the JSON file (database.json)
+        # Read the key, the initialize vector and the encoded text
+        # from the JSON file (database.json)
         userFound = False
         file = open(self.database_json, "r")
         data = json.load(file)
@@ -136,26 +161,31 @@ class AppAccess:
         if userFound == False:
             return False
 
-        # Decrypt the password
+        # Decrypt the password using AES
         password1_hash_text = self.symmetricEncryption.decrypt(
             key, iv, ciphertext
         ).decode()
+        # Decrypt the prescription using AES
         prescription = self.symmetricEncryption.decrypt(
             prescription_key, prescription_iv, prescription_ciphertext
         ).decode()
 
-        print(f"\nPassword (raw text): {password2}\n")
+        print(f"\nPassword (raw text): {password}\n")
         print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash_text}\n")
         print(f"\nPassword as it is sent from the sender to the receiver (text encoded by AES) : {ciphertext.hex()}\n")
         print(f"\nMessage as it is sent by the sender to the receiver (text encoded by AES) : {prescription_ciphertext.hex()}\n")
         print(f"\nMessage after being desencrypted by the sender (raw text) : {prescription}\n")
 
         # Compare the password with the decrypted one
-        salt, hash_text = self.generate_hash(password2, salt)
+        salt, hash_text = self.generate_hash(password, salt)
 
+        # If the password is correct, return the prescription
+        # We know it the password is correct because the hash of the password introduced by the user
+        # is the same as the one generated when the password was encrypted
         return prescription if password1_hash_text == hash_text else None
 
     def print_password_requirements(self) -> None:
+        """Print the password requirements"""
         # Ask the user for a password
         print("------ Enter a password ------")
         print("*The password is encrypted using AES*")
@@ -168,6 +198,7 @@ class AppAccess:
         print("  - At least 1 special character")
 
     def check_password_requirements(self, password) -> bool:
+        """Check if the password meets the requirements"""
         if len(password) < 8:
             print("The password must have at least 8 characters")
             return False
@@ -186,6 +217,7 @@ class AppAccess:
         return True
 
     def check_password(self, password) -> bool:
+        """Check if the password meets the requirements and if it is correct"""
         password_secure = self.check_password_requirements(password)
         if not password_secure:
             print("Password must check all requirements")
@@ -193,6 +225,14 @@ class AppAccess:
         return True
 
     def signup(self, user, password, password2) -> None:
+        """Sign up a new user
+        1. Check if the user already exists
+        2. Generate a hash for the password
+        3. Encrypt the hash of the password using AES
+        4. Store the key, the initialize vector and the ciphertext in a JSON file (database.json)
+        5. Assign a random prescription to the user that will be encrypted using AES
+        6. If the user was created successfully, show a link to the user's prescription
+        """
         self.encrypt_password(user, password)
         prescription = self.decrypt_password(user, password2)
 
@@ -204,6 +244,11 @@ class AppAccess:
             print(self.get_prescription_link(prescription))
 
     def login(self, user, password) -> None:
+        """Login a user
+        1. Check if the user exists
+        2. Decrypt the password and check if it is correct
+        3. If the user was logged in successfully, show a link to the user's prescription
+        """
         prescription = self.decrypt_password(user, password)
 
         if prescription == None:
@@ -217,16 +262,23 @@ class AppAccess:
             return True
 
     def run(self, first_call=True) -> None:
+        """Run the program
+        1. Ask the user if they want to sign up or login
+        2. Ask the user for a username and a password
+        3. Check if the password meets the requirements
+        4. If the user wants to sign up, ask for the password again
+        5. If the user wants to login, check if the password is correct
+        6. If the user was logged in successfully, show a link to the user's prescription
+        """
         if first_call:
             self.welcome_message()
 
         option = self.get_user_option()
 
         if option == "Login":
-            print(
-                "Please, enter your username and password to access your prescription"
-            )
+            print("Please, enter your username and password to access your prescription")
             user = input("Username:\n>>> ")
+            # The user has 3 attempts to enter the password
             user_tries = 3
             while user_tries > 0:
                 password = input("Password:\n>>> ")
@@ -239,11 +291,16 @@ class AppAccess:
         elif option == "Sign Up":
             print("Please, enter your username and password to register")
             user = input("Username:\n>>> ")
+            # Check if the user already exists
             if not self.check_if_user_exists(user):
                 self.print_password_requirements()
                 password = input("Password:\n>>> ")
+                # Check if the password meets the requirements
                 if self.check_password(password):
                     password2 = input("Password again:\n>>> ")
+                    # Check if the password coincides with the one introduced before
                     self.signup(user, password, password2)
             else:
+                # The user already exists
+                # -> Ask the user if they want to login
                 self.run(False)
