@@ -6,7 +6,7 @@
 #  - Alejandra Galán Arróspide
 ###################################
 import unittest
-from ..packages.HashFunctions import HashFunctions
+from packages.HashFunctions import HashFunctions
 
 
 class HashFunctionsTests(unittest.TestCase):
@@ -65,51 +65,5 @@ class HashFunctionsTests(unittest.TestCase):
         # Compare the hash with the password
         self.assertFalse(self.hashFunctions.compare_hash(None))
 
-    def test_compare_hash_incorrect_type(self):
-        """
-        Compare hash with incorrect type (integer)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash(1))
-
-    def test_compare_hash_incorrect_type2(self):
-        """
-        Compare hash with incorrect type (string)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash("1"))
-
-    def test_compare_hash_incorrect_type3(self):
-        """
-        Compare hash with incorrect type (float)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash(1.1))
-
-    def test_compare_hash_incorrect_type4(self):
-        """
-        Compare hash with incorrect type (boolean)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash(True))
-
-    def test_compare_hash_incorrect_type5(self):
-        """
-        Compare hash with incorrect type (list)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash([1, 2, 3]))
-
-    def test_compare_hash_incorrect_type6(self):
-        """
-        Compare hash with incorrect type (tuple)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash((1, 2, 3)))
-
-    def test_compare_hash_incorrect_type7(self):
-        """
-        Compare hash with incorrect type (dictionary)
-        """
-        # Compare the hash with the password
-        self.assertFalse(self.hashFunctions.compare_hash({1: 1, 2: 2, 3: 3}))
+if __name__ == '__main__':
+    unittest.main()

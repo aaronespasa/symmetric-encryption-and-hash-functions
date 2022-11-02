@@ -6,7 +6,7 @@
 #  - Alejandra Galán Arróspide
 ###################################
 import unittest
-from ..packages.SymmetricEncryption import SymmetricEncryption
+from packages.SymmetricEncryption import SymmetricEncryption
 
 
 class SymmetricEncryptionTests(unittest.TestCase):
@@ -18,18 +18,21 @@ class SymmetricEncryptionTests(unittest.TestCase):
         """
         Set up the test
         """
-        self.password = b"password"
-        self.symmetricEncryption = SymmetricEncryption(self.password)
+        self.password = "Roberto123$"
+        self.prescription = "1_bBRIAHdVunX1i7vAWTLPJYXdl9OaV3o"
+        self.symmetricEncryption = SymmetricEncryption()
 
     def test_encrypt(self):
         """
-        Encrypt a password
+        Encrypt a message
         """
-        # Encrypt the password
-        (key, iv, ciphertext) = self.symmetricEncryption.encrypt()
+        EXPECTED_CIPHERTEXT = "d8239839f03810e6142f5c8322c7f4819a4d935be0c4652f0e9deacf86be056a7b"
 
-        # Check the ciphertext is not empty
-        self.assertNotEqual(ciphertext, b"")
+        # Encrypt the password
+        (_, _, ciphertext) = self.symmetricEncryption.encrypt(self.prescription.encode())
+        resultingCiphertext = ciphertext.hex()
+
+        self.assertEqual(resultingCiphertext, EXPECTED_CIPHERTEXT)
 
     def test_decrypt(self):
         """
@@ -82,3 +85,6 @@ class SymmetricEncryptionTests(unittest.TestCase):
 
         # Check the plaintext is not empty
         self.assertNotEqual(plaintext, b"")
+
+if __name__ == '__main__':
+    unittest.main()

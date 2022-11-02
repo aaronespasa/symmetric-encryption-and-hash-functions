@@ -1,16 +1,1 @@
-[
-    {
-        "user": "Roberto",
-        "password": {
-            "key": "8706193935f6d6a742ed5d072e80bbef7f3d03061a41025b7cd6903eb33eac2d",
-            "iv": "a7249befc529433e5f7f16225e6fe58b",
-            "ciphertext": "94ea0bfde1d0f92b5f8ac9ff0ffd461db24c5b3691999d31be0921c3eddeac6d5f3b56bcbfa9aee4bef9dc396f2e7fb1dc6279a7d6712adc44d246c3c12ec380891d9462b6d2d88cf0e3a687259bd7e201e22bfbce44ac5c256c036a0b364a86ebf78bc31ad009c74f1530db0f0fbe64d011f70cba350a3c126cc90c8306d6f8",
-            "salt": "1667328540"
-        },
-        "prescription": {
-            "key": "25f93441fd1ede7cb19508cb535d109449c3f12ed5a45b5ca091df4e39c107ef",
-            "iv": "681aec56909bc992869eeddeeb9adbc5",
-            "ciphertext": "42aa88a8cf411e10aac084e7678fcecc0759ff5935f534b802fa058d4c9a3550b8"
-        }
-    }
-]
+[]
