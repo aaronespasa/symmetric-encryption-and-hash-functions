@@ -27,7 +27,10 @@ SECRET_KEY = "django-insecure-w$d2=x9bq6qnxff05_3h)_a8(se-%_odp#!+x#j@-ci4)7dui!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1"
+]
 
 
 # Application definition
@@ -39,10 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "user"
+    "user",
+    "rest_framework",
+    "corsheaders"
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -84,6 +90,19 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Accept the port where React is working
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:5173", # React
+    "http://localhost:8000", # Django
+]
+
+CSRF_ORIGIN_WHITELIST = [
+    "http://localhost:5173", # React
+    "http://localhost:8000", # Django
+]
 
 
 # Password validation

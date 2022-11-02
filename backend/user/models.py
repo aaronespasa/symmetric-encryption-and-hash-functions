@@ -2,21 +2,22 @@ from django.db import models
 
 class Password(models.Model):
     id = models.AutoField(primary_key=True)
-    password_key = models.CharField(max_length=255)
-    password_iv = models.CharField(max_length=255)
-    password_ciphertext = models.CharField(max_length=255)
+    key = models.CharField(max_length=255)
+    iv = models.CharField(max_length=255)
+    ciphertext = models.CharField(max_length=256)
+    salt = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.password
+        return str(self.id)
 
 class Prescription(models.Model):
     id = models.AutoField(primary_key=True)
-    prescription_key = models.CharField(max_length=255)
-    prescription_iv = models.CharField(max_length=255)
-    prescription_ciphertext = models.CharField(max_length=255)
+    key = models.CharField(max_length=255)
+    iv = models.CharField(max_length=255)
+    ciphertext = models.CharField(max_length=256)
 
     def __str__(self):
-        return self.prescription
+        return str(self.id)
 
 class User(models.Model):
     class Meta:
@@ -24,7 +25,6 @@ class User(models.Model):
         verbose_name_plural = "Usuarios"
     user = models.CharField(max_length=255, unique=True, primary_key=True)
     password = models.ForeignKey(Password, on_delete=models.CASCADE)
-    password_salt = models.CharField(max_length=255)
     prescription = models.ForeignKey(Prescription, on_delete=models.CASCADE)
 
     def __str__(self):

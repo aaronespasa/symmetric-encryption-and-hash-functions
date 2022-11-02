@@ -1,10 +1,63 @@
 import { useState } from "react"
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import SignInBox from "../components/SignInBox"
 import ErrorMessage from "../components/ErrorMessage"
 
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 const SignUp = () => {
   const [errorMessage, setErrorMessage] = useState(null)
+  const [formData, setFormData] = useState({
+    username: "",
+    password: ""
+  })
+
+  const csrftoken = getCookie('csrftoken');
+
+  const navigate = useNavigate()
+
+  const { username, password } = formData
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    try {
+      const response = await fetch("http://localhost:8000/signup/new", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken
+        },
+        body: JSON.stringify(formData)
+      })
+      const data = await response.json()
+      if (data.error) {
+        setErrorMessage(data.error)
+      }
+      else {
+        navigate("/login")
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   return (
     <SignInBox>
@@ -18,9 +71,11 @@ const SignUp = () => {
             <p> - Al menos 1 letra minúscula</p>
             <p> - Al menos 1 caracter especial</p>
         </div>
-        <form className="mb-6" method="POST">
-            <input className="block w-full py-1 px-2 outline-none" type="text" name="username" id="username" placeholder="Nombre de usuario" />
-            <input className="block w-full py-1 px-2 my-2 outline-none" type="password" name="password" id="password" placeholder="Contraseña" />
+        <form className="mb-6" method="POST" onSubmit={e => handleSubmit(e)}>
+            <input className="block w-full py-1 px-2 outline-none" type="text" name="username" id="username" placeholder="Nombre de usuario"
+                onChange={e => handleChange(e)} />
+            <input className="block w-full py-1 px-2 my-2 outline-none" type="password" name="password" id="password" placeholder="Contraseña"
+                onChange={e => handleChange(e)} />
             <input className="block w-full py-1 px-2 my-2 outline-none" type="password" name="password" id="password" placeholder="Contraseña de nuevo" />
             {errorMessage && <ErrorMessage message={errorMessage} />}
             <button className="bg-blue-400 text-white py-2 px-20 hover:bg-blue-300 transition-colors " type="submit">Registrarse</button>
