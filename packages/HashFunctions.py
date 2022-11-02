@@ -10,7 +10,7 @@
 #  - Aarón Espasandín Geselmann
 #  - Alejandra Galán Arróspide
 #########################################
-from Crypto.Hash import SHA512
+from Crypto.Hash import SHA256
 from time import time
 
 
@@ -31,7 +31,7 @@ class HashFunctions:
         Generates a hash of the password
         """
         # Generate a hash of the password
-        hash = SHA512.new((self.salt + self.password).encode())
+        hash = SHA256.new((self.salt + self.password).encode())
 
         # Return the hash
         return hash
@@ -53,7 +53,7 @@ class HashFunctions:
         Compares the password with a hash
         """
         # Generate a hash of the password
-        hash2 = SHA512.new((self.salt + self.password).encode())
+        hash2 = SHA256.new((self.salt + self.password).encode())
 
         # Compare the hashes
         if hash.hexdigest() == hash2.hexdigest():

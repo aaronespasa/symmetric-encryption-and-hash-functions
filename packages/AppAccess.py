@@ -159,7 +159,7 @@ class AppAccess:
         # Ask the user for a password
         print("------ Enter a password ------")
         print("*The password is encrypted using AES*")
-        print("*A hash of the password is generated using SHA512*")
+        print("*A hash of the password is generated using SHA256*")
         print("Restrictions:")
         print("  - At least 8 characters")
         print("  - At least 1 number")

@@ -39,7 +39,7 @@ $ pip install -r requirements.txt
 ## Usage 📖
 This program uses a CLI (Command Line Interface) to interact with the user. It allows us to:
 1. Generate & store a key on a password-protected file using symmetric encryption (making use of AES).
-2. Generate Hash Functions (SHA512) of a given file.
+2. Generate Hash Functions (SHA256) of a given file.
 
 To run it, you must execute the following command:
 ```sh
