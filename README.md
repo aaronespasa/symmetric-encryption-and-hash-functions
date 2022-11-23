@@ -11,7 +11,7 @@ $ git clone https://github.com/aaronespasa/crypto-delivery-1.git
 
 ➡ Get in the folder:
 ```sh
-$ cd crypto-delivery-1
+$ cd crypto-delivery-2
 ```
 
 🌲 Create a virtual environment and activate it:
