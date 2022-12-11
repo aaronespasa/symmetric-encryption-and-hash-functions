@@ -10,9 +10,19 @@
 #  - Alejandra Galán Arróspide
 #########################################
 from .SymmetricEncryption import SymmetricEncryption
+from .AsymmetricEncryption import AsymmetricEncryption
 from .HashFunctions import HashFunctions
 import json
 from random import randint
+from Crypto.PublicKey import RSA
+from OpenSSL.crypto import load_privatekey, \
+                           FILETYPE_PEM, \
+                           sign, \
+                           verify, \
+                           load_certificate, \
+                           FILETYPE_ASN1, \
+                           dump_certificate, \
+                           FILETYPE_PEM
 
 
 class AppAccess:
@@ -28,6 +38,9 @@ class AppAccess:
             "1AvW7U5dMWPBIwI4R9696rxYT2P_LLvmA",
         ]
         self.symmetricEncryption = SymmetricEncryption()
+        self.asymmetricEncryption = AsymmetricEncryption()
+        keyPair = self.asymmetricEncryption.generate_key()
+        self.create_RSA_info(keyPair)
 
     @staticmethod
     def get_prescription_link(prescriptionLink):
@@ -35,6 +48,10 @@ class AppAccess:
 
     def initialize_json(self):
         """Initialize the JSON file (empty the database)"""
+
+        #! We should generate and include the keys for the website so 
+        #! that the user can send the encrypted password to the website??
+
         data = []
         file = open(self.database_json, "w")
         json.dump(data, file, indent=4)
@@ -67,10 +84,34 @@ class AppAccess:
         hash_text = hash.hexdigest() # Hash in hexadecimal format
         return hashFunctions.get_salt(), hash_text
 
+    def create_RSA_info(self, keyPair): 
+
+        #! in reality the private key is only owned by the user and the public key is shared with the website
+
+        #! Nos podemos plantear crear un diccionario para almacenar los nombres de los ficheros con la clave 
+        #! publica de cada usuario y asi poder acceder a ellos cuando se necesite
+
+        #! Otra opcion es generar claves nuevas cada vez que el usuario inicia sesion pero no tiene mucho sentido
+        #! teorico
+
+        private_key = keyPair.export_key()
+        file_out = open("private_user.pem", "wb")
+        file_out.write(private_key)
+        file_out.close()
+
+        public_key = keyPair.publickey().export_key()
+        file_out = open("receiver_user.pem", "wb")
+        file_out.write(public_key)
+        file_out.close()
+
+
     def create_user_json(self, user, key, iv, ciphertext, salt):
         """Create a JSON with the user information
         - This information is what is stored in the database.json file
         """
+        #! For the second part, we will be generating and saving the 
+        #! asimetrical keys for the user
+
         # Generate a random prescription for the user
         assigned_prescription = self.prescriptions[
             randint(0, len(self.prescriptions) - 1)
@@ -83,11 +124,30 @@ class AppAccess:
             prescription_ciphertext,
         ) = self.symmetricEncryption.encrypt(assigned_prescription.encode())
 
+        #! Ciframos las claves simetricas con la clave publica del usuario
+        #! y no las guardamos porque deben ser de un solo uso 
+
+        public_key = RSA.import_key(open("receiver_user.pem").read())
+        prescription_key = self.asymmetricEncryption.encrypt(prescription_key,public_key )
+        prescription_iv = self.asymmetricEncryption.encrypt(prescription_iv,public_key )
+        
+        #! Para la entrega final se deben eliminar las claves simetricas del json
+
         # Create the JSON for the user which contains:
         # - The user name
         # - The key, the initialize vector and the encoded text of the password (encrypted using AES)
         # - The salt of the password (used to generate the hash)
         # - The key, the initialize vector and the encoded text of the prescription (encrypted using AES)
+
+        #! creo que no se puede añadir un keyPair al json, 
+        #! igual en un fichero .pem o algo asi
+
+        #! la mejor opcion es guardar en la base de datos la clave pública 
+        #! (NO SE SI SE PUEDE) --no se puede, podemos crear un fichero .pem para cada usuario 
+        #! La clave privada en el fichero del usuario .pem 
+
+
+        #! Podemos considerar dejarlo y borrarlas y regenerarlas en cada uso
         user_information = {
             "user": user,
             "password": {
@@ -101,6 +161,7 @@ class AppAccess:
                 "iv": prescription_iv.hex(),
                 "ciphertext": prescription_ciphertext.hex(),
             },
+            
         }
         return user_information
 
@@ -115,14 +176,22 @@ class AppAccess:
                 return True
         return False
 
+
     def encrypt_password(self, user, password) -> None:
         """Encrypt the password and store it in the database.json file"""
         # Generate a hash for the password and get the salt that was used to generate it
-        # The, encrypt the hash of the password using AES
+        # The, encrypt the hash 
+        # of the password using AES
+        
         salt, hash_text = self.generate_hash(password)
         (key, iv, ciphertext) = self.symmetricEncryption.encrypt(hash_text.encode())
+        #! Notese que estas claves solo pueden usarse una vez
 
         # Store the key, the initialize vector and the ciphertext in a JSON file (database.json)
+        #! En vez de guardar las claves en el json tenemos que mandarlas por asimetrico. 
+        #! Asumo que el json conterdrá las claves publicas y privadas de cada usuario
+        #! Me parece interesante incluir un "usuario" llamado "admin" que tenga las 
+        #! claves publicas y privadas de la empresa
         user_information = self.create_user_json(user, key, iv, ciphertext, salt)
 
         file = open(self.database_json, "r")
@@ -144,6 +213,8 @@ class AppAccess:
         # from the JSON file (database.json)
         userFound = False
         file = open(self.database_json, "r")
+        #! Las claves se estan obteniendo del json,
+        #! deben pasarse por cifrado asimetrico
         data = json.load(file)
 
         for p in data:
@@ -165,6 +236,13 @@ class AppAccess:
         password1_hash_text = self.symmetricEncryption.decrypt(
             key, iv, ciphertext
         ).decode()
+
+        #! Se debe desencriptar la clave simetrica con la clave asimetrica
+        #! y luego desencriptar el mensaje con la clave simetrica
+
+        private_key = RSA.import_key(open("private_user.pem").read())
+        prescription_key = self.asymmetricEncryption.decrypt(private_key, prescription_key)
+        prescription_iv = self.asymmetricEncryption.decrypt(private_key, prescription_iv)
         # Decrypt the prescription using AES
         prescription = self.symmetricEncryption.decrypt(
             prescription_key, prescription_iv, prescription_ciphertext
