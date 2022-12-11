@@ -133,5 +133,3 @@ dmypy.json
 # Created files
 *.bin
 *.pem
-
-aut_certificacion/
