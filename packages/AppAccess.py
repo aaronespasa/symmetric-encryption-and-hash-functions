@@ -12,17 +12,18 @@
 from .SymmetricEncryption import SymmetricEncryption
 from .AsymmetricEncryption import AsymmetricEncryption
 from .HashFunctions import HashFunctions
+from .Sign import Sign
 import json
 from random import randint
 from Crypto.PublicKey import RSA
-from OpenSSL.crypto import load_privatekey, \
-                           FILETYPE_PEM, \
-                           sign, \
-                           verify, \
-                           load_certificate, \
-                           FILETYPE_ASN1, \
-                           dump_certificate, \
-                           FILETYPE_PEM
+# from OpenSSL.crypto import load_privatekey, \
+#                            FILETYPE_PEM, \
+#                            sign, \
+#                            verify, \
+#                            load_certificate, \
+#                            FILETYPE_ASN1, \
+#                            dump_certificate, \
+#                            FILETYPE_PEM
 
 
 class AppAccess:
@@ -41,6 +42,8 @@ class AppAccess:
         self.asymmetricEncryption = AsymmetricEncryption()
         keyPair = self.asymmetricEncryption.generate_key()
         self.create_RSA_info(keyPair)
+
+        self.sign = Sign("./aut_certificacion/A/") # path relative to the main.py file
 
     @staticmethod
     def get_prescription_link(prescriptionLink):
@@ -130,7 +133,12 @@ class AppAccess:
         public_key = RSA.import_key(open("receiver_user.pem").read())
         prescription_key = self.asymmetricEncryption.encrypt(prescription_key,public_key )
         prescription_iv = self.asymmetricEncryption.encrypt(prescription_iv,public_key )
-        
+        signature = self.sign.sign(assigned_prescription)
+
+        # private_key = RSA.import_key(open("private_user.pem").read())
+        # create a hash of the assigned_prescription and then sign it with the private key
+        # prescription_hash = SHA256.new(assigned_prescription.encode())
+
         #! Para la entrega final se deben eliminar las claves simetricas del json
 
         # Create the JSON for the user which contains:
@@ -160,6 +168,7 @@ class AppAccess:
                 "key": prescription_key.hex(),
                 "iv": prescription_iv.hex(),
                 "ciphertext": prescription_ciphertext.hex(),
+                "signature": signature
             },
             
         }
@@ -227,6 +236,7 @@ class AppAccess:
                 prescription_key = bytes.fromhex(p["prescription"]["key"])
                 prescription_iv = bytes.fromhex(p["prescription"]["iv"])
                 prescription_ciphertext = bytes.fromhex(p["prescription"]["ciphertext"])
+                prescription_signature = p["prescription"]["signature"]
                 break
 
         if userFound == False:
@@ -247,6 +257,9 @@ class AppAccess:
         prescription = self.symmetricEncryption.decrypt(
             prescription_key, prescription_iv, prescription_ciphertext
         ).decode()
+
+        if self.sign.check_signature(prescription, prescription_signature) == False:
+            return False
 
         print(f"\nPassword (raw text): {password}\n")
         print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash_text}\n")
@@ -314,7 +327,7 @@ class AppAccess:
         self.encrypt_password(user, password)
         prescription = self.decrypt_password(user, password2)
 
-        if prescription == None:
+        if prescription == False:
             print("Passwords do not match")
         else:
             print("You have been registered successfully!")
@@ -329,7 +342,7 @@ class AppAccess:
         """
         prescription = self.decrypt_password(user, password)
 
-        if prescription == None:
+        if prescription == False:
             print("The user was not found or the password is incorrect")
             return False
         else:

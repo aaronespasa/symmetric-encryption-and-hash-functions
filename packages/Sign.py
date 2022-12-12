@@ -1,6 +1,7 @@
 from Crypto.Hash import SHA256
 from Crypto.Signature import pkcs1_15
 from Crypto.PublicKey.RSA import import_key
+from OpenSSL.crypto import FILETYPE_PEM, load_privatekey
 from os import path
 
 class Sign:
@@ -16,7 +17,7 @@ class Sign:
     """
     def __init__(self, A_path: str):
         # CONSTANTS
-        PRIVATE_KEY_NAME = "AKey.pem"
+        PRIVATE_KEY_NAME = "Akey.pem"
         PUBLIC_KEY_NAME = "Acert.pem"
 
         # Keep in mind we're calling it from main.py
@@ -81,8 +82,9 @@ class Sign:
         """
         if use_private_key:
             # passphrase= input("\nEnter the RSA private key password:\n>>> ")
-            print(self.PRIVATE_KEY)
-            key = import_key(self.PRIVATE_KEY)
+            # print(self.PRIVATE_KEY)
+            key = load_privatekey(FILETYPE_PEM, self.PRIVATE_KEY)
+            # key = import_key(self.PRIVATE_KEY, passphrase=passphrase)
         else:
             key = import_key(self.PUBLIC_KEY)
 
