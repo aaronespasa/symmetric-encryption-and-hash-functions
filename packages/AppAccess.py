@@ -43,7 +43,7 @@ class AppAccess:
         keyPair = self.asymmetricEncryption.generate_key()
         self.create_RSA_info(keyPair)
 
-        self.sign = Sign("./aut_certificacion/A/") # path relative to the main.py file
+        self.sign = Sign(r"C:/Users/ALEJANDRA/Desktop/uni/tercero/cripto/cripto2.2/crypto-delivery-2/packages/aut_certificacion/A/") # path relative to the main.py file
 
     @staticmethod
     def get_prescription_link(prescriptionLink):

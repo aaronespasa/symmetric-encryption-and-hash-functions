@@ -3,6 +3,9 @@ from Crypto.Signature import pkcs1_15
 from Crypto.PublicKey.RSA import import_key
 from OpenSSL.crypto import FILETYPE_PEM, load_privatekey
 from os import path
+from Crypto.Cipher import PKCS1_OAEP
+from Crypto.PublicKey import RSA
+
 
 class Sign:
     """
@@ -17,18 +20,17 @@ class Sign:
     """
     def __init__(self, A_path: str):
         # CONSTANTS
-        PRIVATE_KEY_NAME = "Akey_de.pem"
+        PRIVATE_KEY_NAME = "Akey.pem"
         PUBLIC_KEY_NAME = "Acert.pem"
 
         # Keep in mind we're calling it from main.py
-        #self.A_PATH = self.get_A_path(A_path)
-        self.A_PATH = A_path
+        self.A_PATH = self.get_A_path(A_path)
         self.PRIVATE_KEY = self.get_file_info(PRIVATE_KEY_NAME)
         self.PUBLIC_KEY = self.get_file_info(PUBLIC_KEY_NAME)
 
     @staticmethod
     def get_A_path(A_path):
-        if A_path[-1] != "\\":
+        if A_path[-1] != "/":
             raise Exception("A Pathname has to end with a slash / symbol")
 
         if not path.exists(A_path):
@@ -42,7 +44,7 @@ class Sign:
         they belong to the Authority of Certification 'A'.
         """
         path = self.A_PATH + key_name
-  
+        
         file = open(path, "rb")
         info = file.read()
         file.close()
@@ -90,8 +92,12 @@ class Sign:
             key = import_key(self.PUBLIC_KEY)
 
         return pkcs1_15.new(key)
+# we read the private key situated in the path C:\Users\ALEJANDRA\Desktop\uni\tercero\cripto\cripto2.2\crypto-delivery-2\packages\aut_certificacion\A\Akey.pem
+# opening the file and printing the content
+#Write key to file
 
-
-if __name__ == "__main__":
-    sign = Sign("../aut_certificacion/A/")
-    signature = sign.sign("my message")
+#Read key from file
+f = open(".\\aut_certificacion\\A\\Akey_de.pem", 'rb')
+key = RSA.importKey(f.read())
+cipher = PKCS1_OAEP.new(key)
+print(cipher)
