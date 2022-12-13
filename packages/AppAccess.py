@@ -16,14 +16,7 @@ from .Sign import Sign
 import json
 from random import randint
 from Crypto.PublicKey import RSA
-# from OpenSSL.crypto import load_privatekey, \
-#                            FILETYPE_PEM, \
-#                            sign, \
-#                            verify, \
-#                            load_certificate, \
-#                            FILETYPE_ASN1, \
-#                            dump_certificate, \
-#                            FILETYPE_PEM
+from os import path
 
 
 class AppAccess:
@@ -43,7 +36,7 @@ class AppAccess:
         keyPair = self.asymmetricEncryption.generate_key()
         self.create_RSA_info(keyPair)
 
-        self.sign = Sign(r"C:/Users/ALEJANDRA/Desktop/uni/tercero/cripto/cripto2.2/crypto-delivery-2/packages/aut_certificacion/A/") # path relative to the main.py file
+        self.sign = Sign(path.join("./aut_certificacion", "A", "./")) # path relative to the main.py file
 
     @staticmethod
     def get_prescription_link(prescriptionLink):
@@ -168,7 +161,7 @@ class AppAccess:
                 "key": prescription_key.hex(),
                 "iv": prescription_iv.hex(),
                 "ciphertext": prescription_ciphertext.hex(),
-                "signature": signature
+                "signature": signature.hex()
             },
             
         }
@@ -236,7 +229,7 @@ class AppAccess:
                 prescription_key = bytes.fromhex(p["prescription"]["key"])
                 prescription_iv = bytes.fromhex(p["prescription"]["iv"])
                 prescription_ciphertext = bytes.fromhex(p["prescription"]["ciphertext"])
-                prescription_signature = p["prescription"]["signature"]
+                prescription_signature = bytes.fromhex(p["prescription"]["signature"])
                 break
 
         if userFound == False:

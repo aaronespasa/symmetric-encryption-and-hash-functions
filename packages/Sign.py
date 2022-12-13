@@ -28,9 +28,6 @@ class Sign:
 
     @staticmethod
     def get_A_path(A_path):
-        if A_path[-1] != "\\":
-            raise Exception("A Pathname has to end with a slash / symbol")
-
         if not path.exists(A_path):
             raise Exception("The path does not exist")
         
@@ -49,7 +46,7 @@ class Sign:
 
         return info
     
-    def sign(self, prescription_raw: str) -> str:
+    def sign(self, prescription_raw: str) -> bytes:
         """
         The process of signing a message is as follows:
             1. The hash of the raw message is calculated using SHA256.
@@ -69,7 +66,13 @@ class Sign:
         """
         hash = SHA256.new(prescription_raw.encode())
         pkcs = self.get_pkcs(use_private_key=False)
-        return True if pkcs.verify(hash, signature) else False
+
+        try :
+            pkcs.verify(hash, signature)
+        except (ValueError, TypeError, AttributeError):
+            return False
+        
+        return True
 
     def get_pkcs(self, use_private_key) -> pkcs1_15:
         """
@@ -84,8 +87,8 @@ class Sign:
         if use_private_key:
             # passphrase= input("\nEnter the RSA private key password:\n>>> ")
             # print(self.PRIVATE_KEY)
-            key = load_privatekey(FILETYPE_PEM, self.PRIVATE_KEY)
-            # key = import_key(self.PRIVATE_KEY, passphrase=passphrase)
+            # key = load_privatekey(FILETYPE_PEM, self.PRIVATE_KEY)
+            key = import_key(self.PRIVATE_KEY)
         else:
             key = import_key(self.PUBLIC_KEY)
 
@@ -93,5 +96,6 @@ class Sign:
 
 
 if __name__ == "__main__":
-    sign = Sign("../aut_certificacion/A/")
+    sign = Sign(path.join("..", "aut_certificacion", "A", "./"))
     signature = sign.sign("my message")
+    print(sign.check_signature("my message", signature))
