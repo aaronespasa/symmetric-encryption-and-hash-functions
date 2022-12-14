@@ -35,7 +35,7 @@ class AppAccess:
         self.prescriptions_hash_name = "prescriptionHashes.json"
         if generateHashDict: self.generate_hash_prescriptions(self.prescriptions)
         
-        with open(path.join("..", self.prescriptions_hash_name), 'r') as f:
+        with open(self.prescriptions_hash_name, 'r') as f:
             self.prescriptionHashes = json.load(f)
 
         self.symmetricEncryption = SymmetricEncryption()
@@ -50,7 +50,7 @@ class AppAccess:
         return f"https://drive.google.com/file/d/{prescriptionLink}/view?usp=sharing"
     
     def generate_hash_prescriptions(self, prescriptions):
-        # create a dictionary of prescription hashes and their corresponding prescription
+        """Generate a dictionary of prescription hashes and their corresponding prescription"""
         prescriptionHashes = {}
         for prescription in prescriptions:
             prescriptionHash = SHA256.new(prescription.encode()).hexdigest()
@@ -62,10 +62,6 @@ class AppAccess:
 
     def initialize_json(self):
         """Initialize the JSON file (empty the database)"""
-
-        #! We should generate and include the keys for the website so 
-        #! that the user can send the encrypted password to the website??
-
         data = []
         file = open(self.database_json, "w")
         json.dump(data, file, indent=4)
@@ -99,14 +95,10 @@ class AppAccess:
         return hashFunctions.get_salt(), hash_text
 
     def create_RSA_info(self, keyPair): 
-
-        #! in reality the private key is only owned by the user and the public key is shared with the website
-
-        #! Nos podemos plantear crear un diccionario para almacenar los nombres de los ficheros con la clave 
-        #! publica de cada usuario y asi poder acceder a ellos cuando se necesite
-
-        #! Otra opcion es generar claves nuevas cada vez que el usuario inicia sesion pero no tiene mucho sentido
-        #! teorico
+        """Create the RSA keys for the user
+        This is a simulation. However, the public key should be sent to the user
+        and the private key should be only store by the server.
+        """
 
         private_key = keyPair.export_key()
         file_out = open("private_user.pem", "wb")
@@ -119,13 +111,10 @@ class AppAccess:
         file_out.close()
 
 
-    def create_user_json(self, user, key, iv, ciphertext, salt):
+    def create_user_json(self, user, salt, password_hash):
         """Create a JSON with the user information
         - This information is what is stored in the database.json file
         """
-        #! For the second part, we will be generating and saving the 
-        #! asymmetrical keys for the user
-
         # Generate a random prescription for the user
         assigned_prescription = self.prescriptions[
             randint(0, len(self.prescriptions) - 1)
@@ -147,16 +136,13 @@ class AppAccess:
 
         # Create the JSON for the user which contains:
         # - The user name
-        # - The key, the initialize vector and the encoded text of the password (encrypted using AES)
-        # - The salt of the password (used to generate the hash)
+        # - The salt and the hash of the password
         # - The key, the initialize vector and the encoded text of the prescription (encrypted using AES)
 
         user_information = {
             "user": user,
             "password": {
-                "key": key.hex(),
-                "iv": iv.hex(),
-                "ciphertext": ciphertext.hex(),
+                "hash": password_hash,
                 "salt": salt,
             },
             "prescription": {
@@ -187,19 +173,11 @@ class AppAccess:
     def encrypt_password(self, user, password) -> None:
         """Encrypt the password and store it in the database.json file"""
         # Generate a hash for the password and get the salt that was used to generate it
-        # The, encrypt the hash 
-        # of the password using AES
         
         salt, hash_text = self.generate_hash(password)
-        (key, iv, ciphertext) = self.symmetricEncryption.encrypt(hash_text.encode())
-        #! Notese que estas claves solo pueden usarse una vez
 
         # Store the key, the initialize vector and the ciphertext in a JSON file (database.json)
-        #! En vez de guardar las claves en el json tenemos que mandarlas por asimetrico. 
-        #! Asumo que el json conterdrá las claves publicas y privadas de cada usuario
-        #! Me parece interesante incluir un "usuario" llamado "admin" que tenga las 
-        #! claves publicas y privadas de la empresa
-        user_information = self.create_user_json(user, key, iv, ciphertext, salt)
+        user_information = self.create_user_json(user, salt, hash_text)
 
         file = open(self.database_json, "r")
         data = json.load(file)
@@ -220,7 +198,6 @@ class AppAccess:
             prescription_iv,
             prescription_ciphertext,
         ) = self.symmetricEncryption.encrypt(prescription.encode())
-        # print key, iv befor being encrypted
 
         # Encrypt the key and the initialize vector using the public key of the user
         public_key = RSA.import_key(open("receiver_user.pem").read())
@@ -313,40 +290,26 @@ class AppAccess:
         # from the JSON file (database.json)
         userFound = False
         file = open(self.database_json, "r")
-        #! Las claves se estan obteniendo del json,
-        #! deben pasarse por cifrado asimetrico
         data = json.load(file)
 
         for p in data:
             if p["user"] == user:
                 userFound = True
-                key = bytes.fromhex(p["password"]["key"])
-                iv = bytes.fromhex(p["password"]["iv"])
-                ciphertext = bytes.fromhex(p["password"]["ciphertext"])
+                password1_hash = p["password"]["hash"]
                 salt = p["password"]["salt"]
                 prescription_hash = bytes.fromhex(p["prescription"]["hash"])
-                # prescription_key = bytes.fromhex(p["prescription"]["key"])
-                # prescription_iv = bytes.fromhex(p["prescription"]["iv"])
-                # prescription_ciphertext = bytes.fromhex(p["prescription"]["ciphertext"])
-                # prescription_signature = bytes.fromhex(p["prescription"]["signature"])
                 break
 
         if userFound == False:
             return None
 
-        # Decrypt the password using AES
-        password1_hash_text = self.symmetricEncryption.decrypt(
-            key, iv, ciphertext
-        ).decode()
-
         # Compare the password with the decrypted one
         salt, hash_text = self.generate_hash(password, salt)
 
         print(f"\nPassword (raw text): {password}\n")
-        print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash_text}\n")
-        print(f"\nPassword as it is sent from the sender to the receiver (text encoded by AES) : {ciphertext.hex()}\n")
+        print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash}\n")
 
-        if password1_hash_text == hash_text:
+        if password1_hash == hash_text:
             return prescription_hash
         else:
             return None
