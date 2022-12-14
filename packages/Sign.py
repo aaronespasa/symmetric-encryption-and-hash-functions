@@ -57,7 +57,7 @@ class Sign:
         pkcs = self.get_pkcs(use_private_key=True)
         return pkcs.sign(hash)
     
-    def check_signature(self, prescription_raw: str, signature: str) -> bool:
+    def check_signature(self, prescription_raw: bytes, signature: bytes) -> bool:
         """
         The process of verifying a signature is as follows:
             1. The hash of the raw message is calculated using SHA256.

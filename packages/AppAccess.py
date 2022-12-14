@@ -16,11 +16,12 @@ from .Sign import Sign
 import json
 from random import randint
 from Crypto.PublicKey import RSA
+from Crypto.Hash import SHA256
 from os import path
 
 
 class AppAccess:
-    def __init__(self, database_json_path) -> None:
+    def __init__(self, database_json_path, generateHashDict=False) -> None:
         self.database_json = database_json_path
         
         # The following list of prescriptions will be assigned randomly to the users
@@ -31,6 +32,12 @@ class AppAccess:
             "1_bBRIAHdVunX1i7vAWTLPJYXdl9OaV3o",
             "1AvW7U5dMWPBIwI4R9696rxYT2P_LLvmA",
         ]
+        self.prescriptions_hash_name = "prescriptionHashes.json"
+        if generateHashDict: self.generate_hash_prescriptions(self.prescriptions)
+        
+        with open(path.join("..", self.prescriptions_hash_name), 'r') as f:
+            self.prescriptionHashes = json.load(f)
+
         self.symmetricEncryption = SymmetricEncryption()
         self.asymmetricEncryption = AsymmetricEncryption()
         keyPair = self.asymmetricEncryption.generate_key()
@@ -41,6 +48,17 @@ class AppAccess:
     @staticmethod
     def get_prescription_link(prescriptionLink):
         return f"https://drive.google.com/file/d/{prescriptionLink}/view?usp=sharing"
+    
+    def generate_hash_prescriptions(self, prescriptions):
+        # create a dictionary of prescription hashes and their corresponding prescription
+        prescriptionHashes = {}
+        for prescription in prescriptions:
+            prescriptionHash = SHA256.new(prescription.encode()).hexdigest()
+            prescriptionHashes[prescriptionHash] = prescription
+
+        # save the dictionary to a json file
+        with open(path.join("..", self.prescriptions_hash_name), 'w') as f:
+            json.dump(prescriptionHashes, f)
 
     def initialize_json(self):
         """Initialize the JSON file (empty the database)"""
@@ -106,12 +124,14 @@ class AppAccess:
         - This information is what is stored in the database.json file
         """
         #! For the second part, we will be generating and saving the 
-        #! asimetrical keys for the user
+        #! asymmetrical keys for the user
 
         # Generate a random prescription for the user
         assigned_prescription = self.prescriptions[
             randint(0, len(self.prescriptions) - 1)
         ]
+
+        prescription_hash = SHA256.new(assigned_prescription.encode()).hexdigest()
 
         # Encrypt the prescription using AES
         (
@@ -120,19 +140,10 @@ class AppAccess:
             prescription_ciphertext,
         ) = self.symmetricEncryption.encrypt(assigned_prescription.encode())
 
-        #! Ciframos las claves simetricas con la clave publica del usuario
-        #! y no las guardamos porque deben ser de un solo uso 
-
         public_key = RSA.import_key(open("receiver_user.pem").read())
         prescription_key = self.asymmetricEncryption.encrypt(prescription_key,public_key )
         prescription_iv = self.asymmetricEncryption.encrypt(prescription_iv,public_key )
         signature = self.sign.sign(assigned_prescription)
-
-        # private_key = RSA.import_key(open("private_user.pem").read())
-        # create a hash of the assigned_prescription and then sign it with the private key
-        # prescription_hash = SHA256.new(assigned_prescription.encode())
-
-        #! Para la entrega final se deben eliminar las claves simetricas del json
 
         # Create the JSON for the user which contains:
         # - The user name
@@ -140,15 +151,6 @@ class AppAccess:
         # - The salt of the password (used to generate the hash)
         # - The key, the initialize vector and the encoded text of the prescription (encrypted using AES)
 
-        #! creo que no se puede añadir un keyPair al json, 
-        #! igual en un fichero .pem o algo asi
-
-        #! la mejor opcion es guardar en la base de datos la clave pública 
-        #! (NO SE SI SE PUEDE) --no se puede, podemos crear un fichero .pem para cada usuario 
-        #! La clave privada en el fichero del usuario .pem 
-
-
-        #! Podemos considerar dejarlo y borrarlas y regenerarlas en cada uso
         user_information = {
             "user": user,
             "password": {
@@ -158,15 +160,18 @@ class AppAccess:
                 "salt": salt,
             },
             "prescription": {
+                "hash": prescription_hash,
+            },
+            "dataToSend": {
                 "key": prescription_key.hex(),
                 "iv": prescription_iv.hex(),
                 "ciphertext": prescription_ciphertext.hex(),
                 "signature": signature.hex()
-            },
-            
+            }
         }
         return user_information
 
+    
     def check_if_user_exists(self, user) -> bool:
         """Check if the user already exists in the database"""
         file = open(self.database_json, "r")
@@ -203,8 +208,101 @@ class AppAccess:
         data.append(user_information)
         file = open(self.database_json, "w")
         json.dump(data, file, indent=4)
+    
+    def encrypt_prescription_by_server(self, user, prescription_hash):
+        """Encrypt the prescription and store it in the database.json file"""
+        # Obtain the prescription in raw text
+        prescription = self.prescriptionHashes[prescription_hash.hex()]
+       
+       # Encrypt the prescription using AES
+        (
+            prescription_key,
+            prescription_iv,
+            prescription_ciphertext,
+        ) = self.symmetricEncryption.encrypt(prescription.encode())
+        # print key, iv befor being encrypted
 
-    def decrypt_password(self, user, password) -> str:
+        # Encrypt the key and the initialize vector using the public key of the user
+        public_key = RSA.import_key(open("receiver_user.pem").read())
+        prescription_key = self.asymmetricEncryption.encrypt(prescription_key,public_key )
+        prescription_iv = self.asymmetricEncryption.encrypt(prescription_iv,public_key )
+        signature = self.sign.sign(prescription) # Sign the prescription
+
+        # find the user in the database.json file and update the prescription information
+        file = open(self.database_json, "r")
+        data = json.load(file)
+        for p in data:
+            if p["user"] == user:
+                p["dataToSend"]["key"] = prescription_key.hex()
+                p["dataToSend"]["iv"] = prescription_iv.hex()
+                p["dataToSend"]["ciphertext"] = prescription_ciphertext.hex()
+                p["dataToSend"]["signature"] = signature.hex()
+                break
+        
+        file = open(self.database_json, "w")
+        json.dump(data, file, indent=4)
+    
+    def decrypt_prescription_by_user(self, user):
+        """Returns the prescription of the user in raw text in the case
+        that the signature can be verified"""
+
+        # Obtain the user information from the database.json file
+        file = open(self.database_json, "r")
+        data = json.load(file)
+        for p in data:
+            if p["user"] == user:
+                prescription_key = bytes.fromhex(p["dataToSend"]["key"])
+                prescription_iv = bytes.fromhex(p["dataToSend"]["iv"])
+                prescription_ciphertext = bytes.fromhex(p["dataToSend"]["ciphertext"])
+                prescription_signature = bytes.fromhex(p["dataToSend"]["signature"])
+                break
+
+        print(f"\nPrescription key: {prescription_key.hex()}\n")
+        print(f"\nPrescription iv: {prescription_iv.hex()}\n")
+        print(f"\nPrescription ciphertext: {prescription_ciphertext.hex()}\n")
+        print(f"\nPrescription signature: {prescription_signature.hex()}\n")
+
+        # Decrypt the key and the initialize vector using the private key of the user
+        private_key = RSA.import_key(open("private_user.pem").read())
+        prescription_key = self.asymmetricEncryption.decrypt(private_key, prescription_key)
+        prescription_iv = self.asymmetricEncryption.decrypt(private_key, prescription_iv)
+        
+        # Decrypt the prescription using AES
+        prescription = self.symmetricEncryption.decrypt(
+            prescription_key, prescription_iv, prescription_ciphertext
+        ).decode()
+
+        if self.sign.check_signature(prescription, prescription_signature) == False:
+            return None
+
+        print(f"\nMessage after being desencrypted by the sender (raw text) : {prescription}\n")
+
+        return prescription
+    
+    def obtain_prescription_on_login(self, user, prescription_hash):
+        """Obtain the prescription of the user in raw text in the case that the user
+        has succesfully logged in"""
+        # Information is temporarily stored in the database.json file
+        # simulating the transfer of the information from the server to the user
+        self.encrypt_prescription_by_server(user, prescription_hash)
+
+        # keep in mind that the user has no access to the self.prescriptionHashes
+        # so it cannot call the function directly to obtain the raw text of the prescription
+        prescription = self.decrypt_prescription_by_user(user)
+
+        if prescription == None:
+            raise Exception("The prescription could not be decrypted or the signature could not be verified")
+
+        # If the user was found and the password is correct, we generate the new simetric key 
+        # and the new iv and we encrypt those values with the public key of the user
+        print("User successfully logged in")
+        print("Welcome to your personal health service!")
+        print("Here is your prescription")
+    
+        print(prescription)
+        return True
+
+    def verify_user_identity(self, user, password) -> bytes:
         """Checks if the user exists and if the password is correct
         - If the user exists, it decrypts the password and checks if it
           is the same as the one provided by the user
@@ -226,47 +324,32 @@ class AppAccess:
                 iv = bytes.fromhex(p["password"]["iv"])
                 ciphertext = bytes.fromhex(p["password"]["ciphertext"])
                 salt = p["password"]["salt"]
-                prescription_key = bytes.fromhex(p["prescription"]["key"])
-                prescription_iv = bytes.fromhex(p["prescription"]["iv"])
-                prescription_ciphertext = bytes.fromhex(p["prescription"]["ciphertext"])
-                prescription_signature = bytes.fromhex(p["prescription"]["signature"])
+                prescription_hash = bytes.fromhex(p["prescription"]["hash"])
+                # prescription_key = bytes.fromhex(p["prescription"]["key"])
+                # prescription_iv = bytes.fromhex(p["prescription"]["iv"])
+                # prescription_ciphertext = bytes.fromhex(p["prescription"]["ciphertext"])
+                # prescription_signature = bytes.fromhex(p["prescription"]["signature"])
                 break
 
         if userFound == False:
-            return False
+            return None
 
         # Decrypt the password using AES
         password1_hash_text = self.symmetricEncryption.decrypt(
             key, iv, ciphertext
         ).decode()
 
-        #! Se debe desencriptar la clave simetrica con la clave asimetrica
-        #! y luego desencriptar el mensaje con la clave simetrica
-
-        private_key = RSA.import_key(open("private_user.pem").read())
-        prescription_key = self.asymmetricEncryption.decrypt(private_key, prescription_key)
-        prescription_iv = self.asymmetricEncryption.decrypt(private_key, prescription_iv)
-        # Decrypt the prescription using AES
-        prescription = self.symmetricEncryption.decrypt(
-            prescription_key, prescription_iv, prescription_ciphertext
-        ).decode()
-
-        if self.sign.check_signature(prescription, prescription_signature) == False:
-            return False
+        # Compare the password with the decrypted one
+        salt, hash_text = self.generate_hash(password, salt)
 
         print(f"\nPassword (raw text): {password}\n")
         print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash_text}\n")
         print(f"\nPassword as it is sent from the sender to the receiver (text encoded by AES) : {ciphertext.hex()}\n")
-        print(f"\nMessage as it is sent by the sender to the receiver (text encoded by AES) : {prescription_ciphertext.hex()}\n")
-        print(f"\nMessage after being desencrypted by the sender (raw text) : {prescription}\n")
 
-        # Compare the password with the decrypted one
-        salt, hash_text = self.generate_hash(password, salt)
-
-        # If the password is correct, return the prescription
-        # We know it the password is correct because the hash of the password introduced by the user
-        # is the same as the one generated when the password was encrypted
-        return prescription if password1_hash_text == hash_text else None
+        if password1_hash_text == hash_text:
+            return prescription_hash
+        else:
+            return None
 
     def print_password_requirements(self) -> None:
         """Print the password requirements"""
@@ -318,14 +401,15 @@ class AppAccess:
         6. If the user was created successfully, show a link to the user's prescription
         """
         self.encrypt_password(user, password)
-        prescription = self.decrypt_password(user, password2)
+        # check that the second password introduced by the user is the same as the first one
+        prescription_hash = self.verify_user_identity(user, password2)
 
-        if prescription == False:
+        if prescription_hash == None:
             print("Passwords do not match")
         else:
             print("You have been registered successfully!")
             print("Here is your prescription:")
-            print(self.get_prescription_link(prescription))
+            print(self.get_prescription_link(self.prescriptionHashes[prescription_hash.hex()]))
 
     def login(self, user, password) -> None:
         """Login a user
@@ -333,17 +417,13 @@ class AppAccess:
         2. Decrypt the password and check if it is correct
         3. If the user was logged in successfully, show a link to the user's prescription
         """
-        prescription = self.decrypt_password(user, password)
+        prescription_hash = self.verify_user_identity(user, password)
 
-        if prescription == False:
+        if prescription_hash == None:
             print("The user was not found or the password is incorrect")
             return False
         else:
-            print("User successfully logged in")
-            print("Welcome to your personal health service!")
-            print("Here is your prescription")
-            print(self.get_prescription_link(prescription))
-            return True
+            return self.obtain_prescription_on_login(user, prescription_hash)
 
     def run(self, first_call=True) -> None:
         """Run the program
