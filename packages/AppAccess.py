@@ -275,8 +275,7 @@ class AppAccess:
         print("User successfully logged in")
         print("Welcome to your personal health service!")
         print("Here is your prescription")
-    
-        print(prescription)
+        print(self.get_prescription_link(prescription))
         return True
 
     def verify_user_identity(self, user, password) -> bytes:
