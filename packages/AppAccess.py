@@ -234,10 +234,12 @@ class AppAccess:
                 prescription_signature = bytes.fromhex(p["dataToSend"]["signature"])
                 break
 
-        print(f"\nPrescription key: {prescription_key.hex()}\n")
-        print(f"\nPrescription iv: {prescription_iv.hex()}\n")
-        print(f"\nPrescription ciphertext: {prescription_ciphertext.hex()}\n")
-        print(f"\nPrescription signature: {prescription_signature.hex()}\n")
+        print(f"{' Information sent to the user ':#^80}")
+        print(f"\nPrescription key (AES + RSA encryption): {prescription_key.hex()[:20]}...\n")
+        print(f"\nPrescription iv (AES + RSA encryption): {prescription_iv.hex()[:20]}...\n")
+        print(f"\nPrescription ciphertext (AES encryption): {prescription_ciphertext.hex()[:20]}...\n")
+        print(f"\nPrescription signature: {prescription_signature.hex()[:20]}...\n")
+        print(f"{'':#^80}")
 
         # Decrypt the key and the initialize vector using the private key of the user
         private_key = RSA.import_key(open("private_user.pem").read())
@@ -252,7 +254,7 @@ class AppAccess:
         if self.sign.check_signature(prescription, prescription_signature) == False:
             return None
 
-        print(f"\nMessage after being desencrypted by the sender (raw text) : {prescription}\n")
+        print(f"\nMessage with the signature verified after being desencrypted by the user: {prescription}\n")
 
         return prescription
     
@@ -306,7 +308,12 @@ class AppAccess:
         salt, hash_text = self.generate_hash(password, salt)
 
         print(f"\nPassword (raw text): {password}\n")
-        print(f"\nPassword once is desencrypted by the sender (hash) : {password1_hash}\n")
+
+        print(f"\n{' Information stored in the database ':#^80}")
+        print(f"\nPassword hash (SHA-256): {password1_hash}\n")
+        print(f"\nPassword salt: {salt}\n")
+        print(f"\nPrescription hash (SHA-256): {salt}\n")
+        print(f"{'':#^80}\n")
 
         if password1_hash == hash_text:
             return prescription_hash
