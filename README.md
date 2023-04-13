@@ -47,5 +47,5 @@ $ python main.py
 ```
 
 ## Authors ✒
-- Aarón Espasandín Geselmann (100451339)
-- Alejandra Galán Arróspide (100451273)
+- Aarón Espasandín Geselmann
+- Alejandra Galán Arróspide
